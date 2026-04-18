@@ -33,6 +33,30 @@ const Upload = () => {
     }
   };
 
+  const handlePaste = () => {
+    if (!pasted.trim()) {
+      toast({ title: "Nothing to import", description: "Paste CSV text first.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      // Auto-detect delimiter (comma, tab, semicolon)
+      const res = Papa.parse<any>(pasted.trim(), {
+        header: true,
+        skipEmptyLines: true,
+      });
+      const rows = (res.data || []).map(normalizeRow);
+      if (!rows.length) throw new Error("No rows detected. Include a header row.");
+      storage.setPending(rows);
+      toast({ title: "Pasted data parsed", description: `${rows.length} rows ready to validate.` });
+      navigate("/quality");
+    } catch (e: any) {
+      toast({ title: "Couldn't parse text", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
