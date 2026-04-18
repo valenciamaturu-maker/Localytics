@@ -2,8 +2,11 @@ import { useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileUp, FileSpreadsheet } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, FileUp, FileSpreadsheet, ClipboardPaste } from "lucide-react";
+import Papa from "papaparse";
 import { parseFile } from "@/lib/parseFile";
+import { normalizeRow } from "@/lib/validation";
 import { storage } from "@/lib/storage";
 import { toast } from "@/hooks/use-toast";
 
