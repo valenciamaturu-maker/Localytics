@@ -10,7 +10,7 @@ export const AppHeader = ({ subtitle }: { subtitle?: string }) => {
             <Ghost className="w-5 h-5 text-primary-foreground" strokeWidth={2.5} />
           </div>
           <div>
-            <h1 className="font-bold text-base leading-none">GhostLedger</h1>
+            <h1 className="font-bold text-base leading-none">Localytics</h1>
             {subtitle && <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>}
           </div>
         </Link>
