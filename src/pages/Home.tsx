@@ -44,7 +44,7 @@ const Home = () => {
         <section className="rounded-3xl gradient-hero text-primary-foreground p-6 shadow-medium">
           <p className="text-xs uppercase tracking-wider opacity-80 font-semibold">Welcome back</p>
           <h2 className="text-2xl font-bold mt-1 leading-tight">
-            Turn your TikTok &amp; Instagram sales into clear insights.
+            Turn your social sales into clear insights.
           </h2>
           <p className="text-sm opacity-90 mt-2">
             Works offline. Your data stays on your phone.
