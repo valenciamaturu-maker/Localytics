@@ -113,6 +113,53 @@ const Upload = () => {
           />
         </div>
 
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <button
+            type="button"
+            onClick={() => setShowPaste((s) => !s)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <span className="flex items-center gap-2 font-semibold">
+              <ClipboardPaste className="w-5 h-5 text-primary" />
+              Or paste data
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {showPaste ? "Hide" : "Show"}
+            </span>
+          </button>
+          <p className="text-xs text-muted-foreground mt-1">
+            Can't download a file? Copy rows from your sheet and paste below.
+          </p>
+
+          {showPaste && (
+            <div className="mt-3 space-y-3 animate-fade-in">
+              <Textarea
+                value={pasted}
+                onChange={(e) => setPasted(e.target.value)}
+                placeholder={"product,quantity,price,date,platform\nLip gloss,3,450,2025-01-12,TikTok\nT-shirt,1,1200,2025-01-13,Instagram"}
+                className="min-h-[140px] font-mono text-xs rounded-xl"
+              />
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 rounded-xl h-11"
+                  onClick={handlePaste}
+                  disabled={loading}
+                >
+                  {loading ? "Importing…" : "Import pasted data"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-xl h-11"
+                  onClick={() => setPasted("")}
+                  disabled={loading || !pasted}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="rounded-2xl bg-secondary/60 p-4 flex gap-3">
           <FileSpreadsheet className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
           <div className="text-xs text-muted-foreground">
