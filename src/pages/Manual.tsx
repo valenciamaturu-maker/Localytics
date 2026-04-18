@@ -123,6 +123,8 @@ const Manual = () => {
                   >
                     <option>TikTok</option>
                     <option>Instagram</option>
+                    <option>Facebook</option>
+                    <option>WhatsApp</option>
                     <option>Other</option>
                   </select>
                 </div>

@@ -1,4 +1,4 @@
-export type Platform = "TikTok" | "Instagram" | "Other";
+export type Platform = "TikTok" | "Instagram" | "Facebook" | "WhatsApp" | "Other";
 
 export interface SaleRecord {
   id: string;
