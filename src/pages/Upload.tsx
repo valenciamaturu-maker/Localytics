@@ -15,6 +15,8 @@ const Upload = () => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [pasted, setPasted] = useState("");
+  const [showPaste, setShowPaste] = useState(false);
 
   const handleFile = async (file: File) => {
     setLoading(true);
