@@ -75,8 +75,8 @@ const Home = () => {
                 <Upload className="w-6 h-6" />
               </div>
               <div className="flex-1">
-                <p className="font-semibold">Upload CSV or Excel</p>
-                <p className="text-sm text-muted-foreground">Bulk import from a file</p>
+                <p className="font-semibold">Import — Upload CSV or Excel</p>
+                <p className="text-sm text-muted-foreground">Bulk import or paste a dataset</p>
               </div>
             </button>
           </Link>
