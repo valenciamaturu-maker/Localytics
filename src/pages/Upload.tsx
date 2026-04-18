@@ -2,8 +2,11 @@ import { useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileUp, FileSpreadsheet } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, FileUp, FileSpreadsheet, ClipboardPaste } from "lucide-react";
+import Papa from "papaparse";
 import { parseFile } from "@/lib/parseFile";
+import { normalizeRow } from "@/lib/validation";
 import { storage } from "@/lib/storage";
 import { toast } from "@/hooks/use-toast";
 
@@ -12,6 +15,7 @@ const Upload = () => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [pasted, setPasted] = useState("");
 
   const handleFile = async (file: File) => {
     setLoading(true);
@@ -28,6 +32,32 @@ const Upload = () => {
     }
   };
 
+  const handlePastedImport = () => {
+    const text = pasted.trim();
+    if (!text) {
+      toast({ title: "Nothing to import", description: "Paste your data first.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      // Auto-detect delimiter (CSV, TSV, semicolon)
+      const res = Papa.parse<any>(text, {
+        header: true,
+        skipEmptyLines: true,
+        delimitersToGuess: [",", "\t", ";", "|"],
+      });
+      const rows = (res.data || []).map(normalizeRow);
+      if (!rows.length) throw new Error("No rows detected. Include a header row.");
+      storage.setPending(rows);
+      toast({ title: "Data imported", description: `${rows.length} rows ready to validate.` });
+      navigate("/quality");
+    } catch (e: any) {
+      toast({ title: "Couldn't parse data", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
@@ -37,9 +67,9 @@ const Upload = () => {
         </Link>
 
         <div>
-          <h2 className="text-2xl font-bold">Upload sales file</h2>
+          <h2 className="text-2xl font-bold">Import sales data</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            CSV or Excel. We'll auto-detect columns: <strong>product, quantity, price, date, platform</strong>.
+            Upload a file or paste rows directly. Columns: <strong>product, quantity, price, date, platform</strong>.
           </p>
         </div>
 
@@ -62,8 +92,8 @@ const Upload = () => {
           <div className="w-16 h-16 rounded-2xl gradient-primary mx-auto flex items-center justify-center shadow-glow mb-4">
             <FileUp className="w-8 h-8 text-primary-foreground" />
           </div>
-          <p className="font-semibold">Drop your file here</p>
-          <p className="text-sm text-muted-foreground mt-1 mb-5">or tap to browse</p>
+          <p className="font-semibold">Import CSV or Excel</p>
+          <p className="text-sm text-muted-foreground mt-1 mb-5">Drop a file or tap to browse</p>
           <Button
             size="lg"
             className="rounded-xl h-12 px-6"
@@ -82,6 +112,33 @@ const Upload = () => {
               if (f) handleFile(f);
             }}
           />
+        </div>
+
+        <div className="rounded-3xl border border-border bg-card p-5 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-accent/15 text-accent-foreground flex items-center justify-center shrink-0">
+              <ClipboardPaste className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-semibold">Paste a dataset</p>
+              <p className="text-xs text-muted-foreground">
+                Copy rows from Excel, Google Sheets, or any CSV.
+              </p>
+            </div>
+          </div>
+          <Textarea
+            value={pasted}
+            onChange={(e) => setPasted(e.target.value)}
+            placeholder={"product,quantity,price,date,platform\nAnkara Dress,3,2500,2025-03-01,TikTok"}
+            className="font-mono text-xs min-h-[140px] rounded-xl"
+          />
+          <Button
+            onClick={handlePastedImport}
+            disabled={loading || !pasted.trim()}
+            className="w-full rounded-xl h-12"
+          >
+            {loading ? "Importing…" : "Import pasted data"}
+          </Button>
         </div>
 
         <div className="rounded-2xl bg-secondary/60 p-4 flex gap-3">
