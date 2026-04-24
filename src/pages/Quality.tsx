@@ -2,15 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, AlertTriangle, Copy, XCircle, ArrowRight } from "lucide-react";
+import { ArrowLeft, CheckCircle2, AlertTriangle, Copy, XCircle, ArrowRight, Wrench } from "lucide-react";
 import { storage } from "@/lib/storage";
 import { normalizeRow, validateRows } from "@/lib/validation";
-import { QualityReport } from "@/lib/types";
+import { QualityReport, SaleRecord, RawRow } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
 
 const Quality = () => {
   const navigate = useNavigate();
   const [report, setReport] = useState<QualityReport | null>(null);
+  const [pendingRaw, setPendingRaw] = useState<RawRow[]>([]);
 
   useEffect(() => {
     const pending = storage.getPending();
@@ -19,9 +20,9 @@ const Quality = () => {
       return;
     }
     const normalized = pending.map((r: any) =>
-      // already-normalized shape from parseFile, manual entry may have raw keys – normalize either way
       ("product" in r || "quantity" in r) ? r : normalizeRow(r),
     );
+    setPendingRaw(normalized);
     const r = validateRows(normalized);
     setReport(r);
     storage.setReport(r);
@@ -38,15 +39,45 @@ const Quality = () => {
     ];
   }, [report]);
 
-  const proceed = () => {
+  const hasIssues = !!report && report.issues.length > 0;
+
+  const importClean = () => {
     if (!report) return;
     if (!report.valid) {
-      toast({ title: "No valid rows to import", variant: "destructive" });
+      toast({ title: "No valid rows to import", description: "Use Continue Anyway to import as-is.", variant: "destructive" });
       return;
     }
     storage.appendSales(report.validRows);
     storage.clearPending();
+    storage.setDirty(false);
     toast({ title: "Imported!", description: `${report.valid} sales added to your ledger.` });
+    navigate("/dashboard");
+  };
+
+  const continueAnyway = () => {
+    if (!report) return;
+    // Build best-effort records from ALL pending rows, filling sane defaults.
+    const all: SaleRecord[] = pendingRaw.map((r, idx) => {
+      const qty = Number(r.quantity);
+      const price = Number(r.price);
+      const parsedDate = r.date ? new Date(r.date) : new Date(NaN);
+      const iso = !isNaN(parsedDate.getTime()) ? parsedDate.toISOString() : new Date().toISOString();
+      return {
+        id: `${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
+        product: (r.product || "Unknown product").toString().trim() || "Unknown product",
+        quantity: !isNaN(qty) && qty > 0 ? qty : 0,
+        price: !isNaN(price) && price >= 0 ? price : 0,
+        date: iso,
+        platform: (r.platform || "Other").toString().trim() || "Other",
+      };
+    });
+    storage.appendSales(all);
+    storage.clearPending();
+    storage.setDirty(true);
+    toast({
+      title: "Imported with warnings",
+      description: `${all.length} rows added. Insights may be affected by incomplete data.`,
+    });
     navigate("/dashboard");
   };
 
@@ -56,7 +87,7 @@ const Quality = () => {
   const healthColor = healthPct >= 80 ? "text-success" : healthPct >= 50 ? "text-warning" : "text-destructive";
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-36">
       <AppHeader subtitle="Data Quality Check" />
       <main className="container max-w-2xl py-6 space-y-6 animate-fade-in">
         <Link to="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
@@ -70,6 +101,27 @@ const Quality = () => {
             {report.valid} of {report.total} rows ready to import
           </p>
         </section>
+
+        {hasIssues && (
+          <section className="rounded-2xl border border-warning/40 bg-warning/10 p-5 shadow-soft">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-warning/20 text-warning flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-foreground">Data Quality Issues Detected</h3>
+                <ul className="mt-2 space-y-1 text-sm text-foreground/90">
+                  {report.missing > 0 && <li>• {report.missing} missing {report.missing === 1 ? "value" : "values"}</li>}
+                  {report.duplicates > 0 && <li>• {report.duplicates} duplicate {report.duplicates === 1 ? "entry" : "entries"}</li>}
+                  {report.invalid > 0 && <li>• {report.invalid} invalid {report.invalid === 1 ? "value" : "values"}</li>}
+                </ul>
+                <p className="text-xs text-muted-foreground mt-3">
+                  These issues may affect the accuracy of your insights.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
 
         <section className="grid grid-cols-2 gap-3">
           {stats.map((s) => (
@@ -115,7 +167,7 @@ const Quality = () => {
           </section>
         )}
 
-        {report.issues.length === 0 && (
+        {!hasIssues && (
           <div className="rounded-2xl bg-success/10 text-success p-4 flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5" />
             <p className="text-sm font-semibold">No issues found. Your data looks clean!</p>
@@ -124,19 +176,37 @@ const Quality = () => {
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t border-border p-4">
-        <div className="container max-w-2xl flex gap-2">
-          <Button variant="outline" onClick={() => navigate(-1)} className="h-13 rounded-xl px-5">
-            Fix
-          </Button>
-          <Button
-            onClick={proceed}
-            disabled={!report.valid}
-            size="lg"
-            className="flex-1 h-13 rounded-xl gradient-primary shadow-glow text-base font-semibold"
-          >
-            Import {report.valid} valid {report.valid === 1 ? "row" : "rows"}
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
+        <div className="container max-w-2xl space-y-2">
+          {hasIssues ? (
+            <>
+              <Button
+                onClick={continueAnyway}
+                size="lg"
+                className="w-full h-13 rounded-xl gradient-primary shadow-glow text-base font-semibold"
+              >
+                Continue Anyway
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate(-1)}
+                className="w-full h-12 rounded-xl"
+              >
+                <Wrench className="w-4 h-4 mr-2" />
+                Fix Data
+              </Button>
+            </>
+          ) : (
+            <Button
+              onClick={importClean}
+              disabled={!report.valid}
+              size="lg"
+              className="w-full h-13 rounded-xl gradient-primary shadow-glow text-base font-semibold"
+            >
+              Import {report.valid} valid {report.valid === 1 ? "row" : "rows"}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          )}
         </div>
       </div>
     </div>
