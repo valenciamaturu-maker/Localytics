@@ -3,6 +3,7 @@ import { SaleRecord, QualityReport } from "./types";
 const SALES_KEY = "ghostledger.sales.v1";
 const REPORT_KEY = "ghostledger.report.v1";
 const PENDING_KEY = "ghostledger.pending.v1";
+const DIRTY_KEY = "ghostledger.dirty.v1";
 
 export const storage = {
   getSales(): SaleRecord[] {
@@ -45,5 +46,12 @@ export const storage = {
     } catch {
       return null;
     }
+  },
+  setDirty(flag: boolean) {
+    if (flag) localStorage.setItem(DIRTY_KEY, "1");
+    else localStorage.removeItem(DIRTY_KEY);
+  },
+  isDirty(): boolean {
+    return localStorage.getItem(DIRTY_KEY) === "1";
   },
 };

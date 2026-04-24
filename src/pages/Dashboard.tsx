@@ -12,6 +12,7 @@ import {
   Package,
   Sparkles,
   Plus,
+  AlertTriangle,
 } from "lucide-react";
 import { storage } from "@/lib/storage";
 import { computeInsights, formatKES } from "@/lib/insights";
@@ -20,6 +21,7 @@ import { SaleRecord } from "@/lib/types";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [sales, setSales] = useState<SaleRecord[]>([]);
+  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     const s = storage.getSales();
@@ -28,6 +30,7 @@ const Dashboard = () => {
       return;
     }
     setSales(s);
+    setDirty(storage.isDirty());
   }, [navigate]);
 
   const insights = useMemo(() => computeInsights(sales), [sales]);
@@ -55,6 +58,15 @@ const Dashboard = () => {
           </Link>
           <span className="text-xs text-muted-foreground">{sales.length} total sales</span>
         </div>
+
+        {dirty && (
+          <div className="rounded-2xl border border-warning/40 bg-warning/10 p-3 flex items-start gap-2 text-sm">
+            <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+            <p className="text-foreground/90">
+              Some data issues detected — results may not be fully accurate.
+            </p>
+          </div>
+        )}
 
         {/* Hero metric */}
         <section className="rounded-3xl gradient-hero text-primary-foreground p-6 shadow-medium">
